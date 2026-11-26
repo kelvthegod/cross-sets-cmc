@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cross Sets — CoinMarketCap Cross-Market Intelligence &amp; Analyze Desk</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body id="top">
+  <!-- Sticky Header -->
+  <header class="site-header">
+    <div class="container nav-inner">
+      <a href="#top" class="brand">
+        <div class="brand-mark">CS</div>
+        <span class="brand-name">Cross Sets</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#top">Home</a>
+        <a href="#analyze">Analyze</a>
+        <a href="#markets">Markets</a>
+        <a href="#heatmaps">Heatmaps</a>
+        <a href="#method">Method</a>
+      </nav>
+
+      <div class="nav-actions">
+        <span id="cmc-status-badge" class="status-badge">CONNECTING CMC API...</span>
+        <a href="/dashboard" class="btn btn-primary">Open Unified Desk →</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="eyebrow">Cross-set intelligence · CoinMarketCap Data &amp; Visualisation Track</div>
+      <h1>The Future of Crypto Market Intelligence is already here</h1>
+      <p class="hero-sub">
+        Cross trading like never before. Wouldn’t it be cool if you could analyze which
+        <span id="hero-carousel-word" class="carousel-word">Cryptocurrency</span>
+        is leading across CoinMarketCap’s markets?
+      </p>
+
+      <div class="hero-cta-row">
+        <a href="#analyze" class="btn btn-primary">Analyze Markets Now</a>
+        <a href="#heatmaps" class="btn">Explore CMC Heatmaps</a>
+        <a href="/dashboard" class="btn">Full-Screen Unified Dashboard</a>
+      </div>
+
+      <div class="metrics-ribbon">
+        <div class="metric-item">
+          <div class="metric-label">CMC Active Cryptocurrencies</div>
+          <div class="metric-value" id="hero-active-cryptos">—</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Relationship Models</div>
+          <div class="metric-value">4 Models</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Total CMC Market Cap</div>
+          <div class="metric-value" id="hero-total-mcap">—</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">BTC Market Dominance</div>
+          <div class="metric-value" id="hero-btc-dom">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Embedded Analyze Section Directly in Home -->
+  <section id="analyze" class="section">
+    <div class="container">
+      <div class="section-kicker">Interactive Cross-Market Workbench</div>
+      <h2 class="section-title">Analyze any CoinMarketCap market pair across four models.</h2>
+      <p class="section-desc">
+        Pair any two CMC-listed cryptocurrencies, switch between Relative Performance, Ratio, Difference, and Beta-Adjusted models, and inspect Polars performance diagnostics live on the home page.
+      </p>
+
+      <div class="analyze-shell">
+        <div class="analyze-toolbar">
+          <div class="field-group">
+            <label for="home-asset-a">Market A (Primary CMC Asset)</label>
+            <select id="home-asset-a" onchange="runHomeAnalysis()"></select>
+          </div>
+          <div class="field-group">
+            <label for="home-asset-b">Market B (Comparison CMC Asset)</label>
+            <select id="home-asset-b" onchange="runHomeAnalysis()"></select>
+          </div>
+          <div class="field-group">
+            <label for="home-days">History Window</label>
+            <select id="home-days" onchange="runHomeAnalysis()">
+              <option value="14">14 Days</option>
+              <option value="30" selected>30 Days</option>
+              <option value="60">60 Days</option>
+              <option value="90">90 Days</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="runHomeAnalysis()">Analyze Pair</button>
+        </div>
+
+        <div class="model-tabs">
+          <button class="model-tab active" data-model="rel_perf" onclick="setHomeModel(this)">
+            <div class="code">01 A vs B · REBASED 100</div>
+            <div class="name">Relative Performance</div>
+          </button>
+          <button class="model-tab" data-model="ratio_ab" onclick="setHomeModel(this)">
+            <div class="code">02 A / B · EXCHANGE RATIO</div>
+            <div class="name">Ratio Model</div>
+          </button>
+          <button class="model-tab" data-model="diff_ab" onclick="setHomeModel(this)">
+            <div class="code">03 A − B · PRICE SPREAD</div>
+            <div class="name">Difference Model</div>
+          </button>
+          <button class="model-tab" data-model="beta_adjusted" onclick="setHomeModel(this)">
+            <div class="code">04 A − βB · RESIDUAL ALPHA</div>
+            <div class="name">Beta-Adjusted Model</div>
+          </button>
+        </div>
+
+        <div class="analyze-body">
+          <div class="chart-panel">
+            <div class="chart-header">
+              <strong id="home-chart-heading" style="font-size:13.5px;">01 Relative Performance: SOL vs ETH</strong>
+              <span id="home-chart-sub" style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-muted)">Powered by CMC Historical Quotes + Polars</span>
+            </div>
+            <div id="home-chart-container"></div>
+          </div>
+
+          <aside class="perf-sidebar">
+            <div class="perf-card">
+              <h4>Cross Relationship Signal</h4>
+              <div class="stat-row"><span>Active Model Value</span><span id="stat-model-val">—</span></div>
+              <div class="stat-row"><span>Pair Ratio Z-Score</span><span id="stat-zscore">—</span></div>
+              <div class="stat-row"><span>OLS Beta (A vs B)</span><span id="stat-beta-ab">—</span></div>
+              <div class="stat-row"><span>Beta vs CMC 20 Index</span><span id="stat-beta-cmc20">—</span></div>
+              <div class="stat-row"><span>Return Correlation</span><span id="stat-corr">—</span></div>
+              <div class="stat-row"><span>Signal Conviction</span><span id="stat-conviction" class="pos">—</span></div>
+            </div>
+
+            <div class="perf-card">
+              <h4>Period Performance Comparison</h4>
+              <div class="stat-row"><span id="label-ret-a">Market A Return</span><span id="stat-ret-a">—</span></div>
+              <div class="stat-row"><span id="label-ret-b">Market B Return</span><span id="stat-ret-b">—</span></div>
+              <div class="stat-row"><span id="label-vol-a">Market A Volatility</span><span id="stat-vol-a">—</span></div>
+              <div class="stat-row"><span id="label-vol-b">Market B Volatility</span><span id="stat-vol-b">—</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- Four Preset Model Cards -->
+      <div class="models-grid" style="margin-top:24px;">
+        <div class="formula-card" onclick="applyPresetPair(5426, 1027, 'rel_perf')">
+          <div class="formula-num">01 · RELATIVE PERFORMANCE</div>
+          <h3>A vs B</h3>
+          <div class="formula-expr">Norm(SOL) − Norm(ETH)</div>
+          <p>Which Layer-1 ecosystem is leading on a normalized 100-base scale? Click to chart live.</p>
+        </div>
+        <div class="formula-card" onclick="applyPresetPair(1027, 1, 'ratio_ab')">
+          <div class="formula-num">02 · RATIO MODEL</div>
+          <h3>A / B</h3>
+          <div class="formula-expr">ETH / BTC</div>
+          <p>Will Ethereum gain relative valuation strength against Bitcoin? Click to inspect ratio Z-score.</p>
+        </div>
+        <div class="formula-card" onclick="applyPresetPair(1, 1027, 'diff_ab')">
+          <div class="formula-num">03 · DIFFERENCE MODEL</div>
+          <h3>A − B</h3>
+          <div class="formula-expr">BTC − ETH</div>
+          <p>Track the raw nominal price spread expansion or contraction across CMC spot quotes.</p>
+        </div>
+        <div class="formula-card" onclick="applyPresetPair(5426, 1, 'beta_adjusted')">
+          <div class="formula-num">04 · BETA-ADJUSTED MODEL</div>
+          <h3>A − βB</h3>
+          <div class="formula-expr">SOL − β·BTC</div>
+          <p>Strip out broad Bitcoin &amp; CMC 20 Index beta to isolate pure idiosyncratic token alpha.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Markets Section (Strictly CoinMarketCap Markets) -->
+  <section id="markets" class="section">
+    <div class="container">
+      <div class="section-kicker">CoinMarketCap Markets Board</div>
+      <h2 class="section-title">Live CMC Markets. One comparable board.</h2>
+      <p class="section-desc">
+        Featuring live spot markets directly from CoinMarketCap’s API. Click any market row to load it into the Analyze workbench above.
+      </p>
+
+      <div class="board-card">
+        <table class="markets-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>CMC Market</th>
+              <th>Last Price (USD)</th>
+              <th>1h %</th>
+              <th>24h %</th>
+              <th>7d %</th>
+              <th>24h Volume</th>
+              <th>Market Cap</th>
+              <th>Dominance</th>
+            </tr>
+          </thead>
+          <tbody id="markets-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CMC Market Heatmaps Section -->
+  <section id="heatmaps" class="section">
+    <div class="container">
+      <div class="heatmap-controls">
+        <div>
+          <div class="section-kicker">CoinMarketCap Market Heatmaps</div>
+          <h2 class="section-title">CMC Sector &amp; Market Cap Heatmap</h2>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-hm-sectors" class="btn btn-primary" onclick="renderHeatmap('sectors')">CMC Market Sectors</button>
+          <button id="btn-hm-assets" class="btn" onclick="renderHeatmap('assets')">Top CMC Cryptocurrencies</button>
+        </div>
+      </div>
+      <p class="section-desc">
+        Visualizing 24-hour capital rotation across CoinMarketCap market categories (Layer 1, Smart Contracts, DeFi, AI &amp; Big Data, Memes, Layer 2) and leading tokens.
+      </p>
+
+      <div id="heatmap-grid" class="heatmap-grid"></div>
+    </div>
+  </section>
+
+  <!-- Method Section -->
+  <section id="method" class="section">
+    <div class="container">
+      <div class="section-kicker">Method</div>
+      <h2 class="section-title">Three moves, run continuously on CoinMarketCap data.</h2>
+      <div class="method-grid" style="margin-top:24px;">
+        <div class="method-card">
+          <div class="method-step-num">01</div>
+          <h3>Ingest</h3>
+          <p style="color:var(--text-secondary);margin-top:6px;">
+            Live CMC spot listings, historical OHLCV quotes, sector categories, DEX liquidity pairs, and the CoinMarketCap 20 Index stream into Polars on one normalized scale.
+          </p>
+        </div>
+        <div class="method-card">
+          <div class="method-step-num">02</div>
+          <h3>Cross</h3>
+          <p style="color:var(--text-secondary);margin-top:6px;">
+            Every cryptocurrency and CMC market sector is paired against peer ecosystems and benchmark indices across Relative Performance, Ratio, Difference, and Beta-Adjusted models.
+          </p>
+        </div>
+        <div class="method-card">
+          <div class="method-step-num">03</div>
+          <h3>Score</h3>
+          <p style="color:var(--text-secondary);margin-top:6px;">
+            Each cross-market intersection is ranked by ratio Z-score, return correlation, and residual alpha conviction—surfaced as one readable chart instead of ten browser tabs.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="container site-footer">
+    <div>
+      <strong>Cross Sets</strong> · Cross-market intelligence powered by CoinMarketCap Pro API
+    </div>
+    <div>
+      <a href="/dashboard" style="color:var(--text-primary);text-decoration:none;font-weight:500;">Unified Dashboard</a> ·
+      <a href="/api/v1/evidence" target="_blank" style="color:var(--text-secondary);text-decoration:none;">CMC API Evidence JSON</a> ·
+      Research tooling · Not investment advice
+    </div>
+  </footer>
+
+  <script>
+    const CAROUSEL_WORDS = [
+      "Cryptocurrency",
+      "Market Sector",
+      "Layer-1 Ecosystem",
+      "DEX Liquidity Pool",
+      "CMC20 Benchmark"
+    ];
+    let wordIdx = 0;
+    setInterval(() => {
+      wordIdx = (wordIdx + 1) % CAROUSEL_WORDS.length;
+      const el = document.getElementById("hero-carousel-word");
+      el.style.opacity = 0;
+      setTimeout(() => {
+        el.textContent = CAROUSEL_WORDS[wordIdx];
+        el.style.opacity = 1;
+      }, 220);
+    }, 2600);
+
+    let marketsList = [];
+    let sectorList = [];
+    let currentModel = "rel_perf";
+    let analysisData = null;
+    let homeChart = null;
+    let homeSeries = null;
+
+    const MODEL_TITLES = {
+      rel_perf: "01 Relative Performance Spread (Rebased = 100)",
+      ratio_ab: "02 Pair Ratio Model (Market A / Market B)",
+      diff_ab: "03 Price Difference Model (Market A − Market B)",
+      beta_adjusted: "04 Beta-Adjusted Spread (A − βB)"
+    };
+
+    function initHomeChart() {
+      const container = document.getElementById("home-chart-container");
+      homeChart = LightweightCharts.createChart(container, {
+        layout: {
+          background: { color: "#ffffff" },
+          textColor: "#52524e",
+          fontFamily: "JetBrains Mono, monospace",
+          fontSize: 11
+        },
+        grid: { vertLines: { color: "#f3f3ef" }, horzLines: { color: "#f3f3ef" } },
+        rightPriceScale: { borderColor: "#e5e5e0" },
+        timeScale: { borderColor: "#e5e5e0" }
+      });
+      homeSeries = homeChart.addAreaSeries({
+        lineColor: "#0f766e",
+        topColor: "rgba(15, 118, 110, 0.18)",
+        bottomColor: "rgba(15, 118, 110, 0.01)",
+        lineWidth: 2
+      });
+      new ResizeObserver(() => {
+        homeChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+      }).observe(container);
+    }
+
+    function fmtMoney(n) {
+      if (n >= 1e12) return "$" + (n / 1e12).toFixed(2) + "T";
+      if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
+      if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+      return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 4 });
+    }
+
+    function fmtPct(v) {
+      const sign = v >= 0 ? "+" : "";
+      return `${sign}${Number(v).toFixed(2)}%`;
+    }
+
+    async function loadOverview() {
+      const res = await fetch("/api/v1/markets/overview?limit=16");
+      const data = await res.json();
+
+      const badge = document.getElementById("cmc-status-badge");
+      if (data.mode === "LIVE_CMC_API") {
+        badge.textContent = "LIVE CMC PRO API";
+        badge.classList.add("live");
+      } else {
+        badge.textContent = "CMC SAMPLE MODE";
+      }
+
+      const g = data.global_metrics || {};
+      document.getElementById("hero-active-cryptos").textContent = Number(g.active_cryptocurrencies || 0).toLocaleString();
+      document.getElementById("hero-total-mcap").textContent = fmtMoney(g.total_market_cap || 0);
+      document.getElementById("hero-btc-dom").textContent = `${g.btc_dominance || 0}%`;
+
+      marketsList = data.markets || [];
+      sectorList = data.sector_heatmap || [];
+
+      const selA = document.getElementById("home-asset-a");
+      const selB = document.getElementById("home-asset-b");
+      const tbody = document.getElementById("markets-tbody");
+      selA.innerHTML = "";
+      selB.innerHTML = "";
+      tbody.innerHTML = "";
+
+      marketsList.forEach(m => {
+        const optA = new Option(`${m.symbol} — ${m.name}`, m.id);
+        const optB = new Option(`${m.symbol} — ${m.name}`, m.id);
+        selA.add(optA);
+        selB.add(optB);
+
+        const c1 = m.percent_change_1h >= 0 ? "pos" : "neg";
+        const c24 = m.percent_change_24h >= 0 ? "pos" : "neg";
+        const c7 = m.percent_change_7d >= 0 ? "pos" : "neg";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>#${m.rank}</td>
+          <td class="asset-cell"><span class="asset-pill">${m.symbol}</span><strong>${m.name}</strong></td>
+          <td>${fmtMoney(m.price)}</td>
+          <td class="${c1}">${fmtPct(m.percent_change_1h)}</td>
+          <td class="${c24}">${fmtPct(m.percent_change_24h)}</td>
+          <td class="${c7}">${fmtPct(m.percent_change_7d)}</td>
+          <td>${fmtMoney(m.volume_24h)}</td>
+          <td>${fmtMoney(m.market_cap)}</td>
+          <td>${m.market_cap_dominance}%</td>
+        `;
+        tr.onclick = () => {
+          selA.value = m.id;
+          if (selB.value == m.id) selB.value = m.id == 1 ? 1027 : 1;
+          document.getElementById("analyze").scrollIntoView({ behavior: "smooth" });
+          runHomeAnalysis();
+        };
+        tbody.appendChild(tr);
+      });
+
+      // Default pair: SOL (5426) vs ETH (1027) or top two available
+      if (marketsList.some(m => m.id === 5426)) selA.value = 5426;
+      else if (marketsList.length > 2) selA.value = marketsList[2].id;
+      if (marketsList.some(m => m.id === 1027)) selB.value = 1027;
+      else if (marketsList.length > 0) selB.value = marketsList[0].id;
+
+      renderHeatmap("sectors");
+      await runHomeAnalysis();
+    }
+
+    function renderHeatmap(mode) {
+      document.getElementById("btn-hm-sectors").className = mode === "sectors" ? "btn btn-primary" : "btn";
+      document.getElementById("btn-hm-assets").className = mode === "assets" ? "btn btn-primary" : "btn";
+
+      const grid = document.getElementById("heatmap-grid");
+      grid.innerHTML = "";
+
+      const items = mode === "sectors"
+        ? sectorList.slice(0, 12).map(s => ({
+            title: s.name,
+            change: s.market_cap_change_24h,
+            sub: `MCap ${fmtMoney(s.market_cap)} · ${s.num_tokens} tokens`,
+            clickId: null
+          }))
+        : marketsList.slice(0, 12).map(m => ({
+            title: `${m.symbol} · ${m.name}`,
+            change: m.percent_change_24h,
+            sub: `${fmtMoney(m.price)} · Dom ${m.market_cap_dominance}%`,
+            clickId: m.id
+          }));
+
+      items.forEach(item => {
+        const chg = Number(item.change || 0);
+        const cls = chg >= 3 ? "pos-strong" : chg >= 0 ? "pos-mild" : chg <= -3 ? "neg-strong" : "neg-mild";
+        const tile = document.createElement("div");
+        tile.className = `heat-tile ${cls}`;
+        tile.innerHTML = `
+          <div class="heat-top">
+            <span class="heat-name">${item.title}</span>
+            <span class="heat-change">${fmtPct(chg)}</span>
+          </div>
+          <div class="heat-meta">${item.sub}</div>
+        `;
+        if (item.clickId) {
+          tile.onclick = () => {
+            document.getElementById("home-asset-a").value = item.clickId;
+            document.getElementById("analyze").scrollIntoView({ behavior: "smooth" });
+            runHomeAnalysis();
+          };
+        }
+        grid.appendChild(tile);
+      });
+    }
+
+    function setHomeModel(btn) {
+      document.querySelectorAll(".model-tab").forEach(t => t.classList.remove("active"));
+      btn.classList.add("active");
+      currentModel = btn.dataset.model;
+      renderHomeChart();
+    }
+
+    function applyPresetPair(idA, idB, modelKey) {
+      const selA = document.getElementById("home-asset-a");
+      const selB = document.getElementById("home-asset-b");
+      if ([...selA.options].some(o => Number(o.value) === idA)) selA.value = idA;
+      if ([...selB.options].some(o => Number(o.value) === idB)) selB.value = idB;
+      const tab = document.querySelector(`.model-tab[data-model="${modelKey}"]`);
+      if (tab) setHomeModel(tab);
+      document.getElementById("analyze").scrollIntoView({ behavior: "smooth" });
+      runHomeAnalysis();
+    }
+
+    function renderHomeChart() {
+      if (!analysisData || !homeSeries) return;
+      const symA = analysisData.asset_a?.symbol || "A";
+      const symB = analysisData.asset_b?.symbol || "B";
+      document.getElementById("home-chart-heading").textContent = `${MODEL_TITLES[currentModel]} — ${symA} vs ${symB}`;
+
+      const pts = (analysisData.series || []).map(r => ({
+        time: r.timestamp,
+        value: Number(r[currentModel] ?? 0)
+      }));
+      homeSeries.setData(pts);
+      homeChart.timeScale().fitContent();
+
+      const s = analysisData.summary || {};
+      const valMap = {
+        rel_perf: `${s.rel_perf_spread_pts ?? 0} pts`,
+        ratio_ab: `${s.latest_ratio ?? 0}`,
+        diff_ab: fmtMoney(s.latest_diff ?? 0),
+        beta_adjusted: `${s.beta_adjusted_pts ?? 0} pts`
+      };
+      document.getElementById("stat-model-val").textContent = valMap[currentModel] || "—";
+    }
+
+    async function runHomeAnalysis() {
+      const idA = document.getElementById("home-asset-a").value || 5426;
+      const idB = document.getElementById("home-asset-b").value || 1027;
+      const days = document.getElementById("home-days").value || 30;
+
+      const res = await fetch(`/api/v1/analyze/pair?asset_a_id=${idA}&asset_b_id=${idB}&days=${days}`);
+      analysisData = await res.json();
+
+      const s = analysisData.summary || {};
+      const p = analysisData.performance || {};
+      const symA = analysisData.asset_a?.symbol || "A";
+      const symB = analysisData.asset_b?.symbol || "B";
+
+      document.getElementById("stat-zscore").textContent = `${s.ratio_z_score ?? 0}σ`;
+      document.getElementById("stat-beta-ab").textContent = `${s.beta_ab ?? 1}x`;
+      document.getElementById("stat-beta-cmc20").textContent = `${s.beta_cmc20 ?? 1}x`;
+      document.getElementById("stat-corr").textContent = `${s.correlation ?? 0}`;
+      document.getElementById("stat-conviction").textContent = `${s.conviction_score ?? 0} / 100`;
+
+      document.getElementById("label-ret-a").textContent = `${symA} (${days}d Return)`;
+      document.getElementById("label-ret-b").textContent = `${symB} (${days}d Return)`;
+      document.getElementById("label-vol-a").textContent = `${symA} Ann. Vol`;
+      document.getElementById("label-vol-b").textContent = `${symB} Ann. Vol`;
+
+      const retA = p.asset_a?.period_return_pct ?? 0;
+      const retB = p.asset_b?.period_return_pct ?? 0;
+      const elRetA = document.getElementById("stat-ret-a");
+      const elRetB = document.getElementById("stat-ret-b");
+      elRetA.textContent = fmtPct(retA);
+      elRetA.className = retA >= 0 ? "pos" : "neg";
+      elRetB.textContent = fmtPct(retB);
+      elRetB.className = retB >= 0 ? "pos" : "neg";
+
+      document.getElementById("stat-vol-a").textContent = `${p.asset_a?.annualized_vol_pct ?? 0}%`;
+      document.getElementById("stat-vol-b").textContent = `${p.asset_b?.annualized_vol_pct ?? 0}%`;
+
+      renderHomeChart();
+    }
+
+    initHomeChart();
+    loadOverview();
+  </script>
+</body>
+</html>
